@@ -92,7 +92,7 @@
             // Fallback for image loading error (optional, but good practice)
             // If the image fails to load, it will show a generic error placeholder
             emoteImage.onerror = () => {
-                emoteImage.src = 'https://natural-aquamarine-zc2wiyfe4c.edgeone.app/IMG_20251112_113901.png';
+                emoteImage.src = 'https://ibb.co/sJR6t9Zy';
             };
             
             // Add a slight animation class for visual feedback
@@ -163,24 +163,7 @@
                 claimButton.disabled = true;
                 claimButton.textContent = 'Processing...';
 
-                // --- CRITICAL SAFETY WARNING LOGIC ---
-                const safetyMessage = `
-                    <p class="text-lg font-semibold mb-3 text-red-400">🚨 ACCOUNT SAFETY WARNING 🚨</p>
-                    <p class="text-left mb-4">
-                        This website is a **MOCKUP** for demonstration purposes only. It **CANNOT** interact with your Garena Free Fire account.
-                    </p>
-                    <p class="text-left mb-4">
-                        **DO NOT** trust any external website that asks for your UID and promises free items. This is a common method used for phishing or scams.
-                    </p>
-                    <p class="text-left font-bold text-yellow-300">
-                        Always claim rewards using **OFFICIAL REDEEM CODES** on the **Official Garena Redemption Site** only.
-                    </p>
-                    <hr class="my-4 border-gray-600">
-                    <p class="text-left text-sm">
-                        *Simulated Claim Data: UID: ${uid}, Level: ${level}, Emote: ${emotes[emote].name}*
-                    </p>
-                `;
-                
+               
                 // Simulate an API call delay
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 
