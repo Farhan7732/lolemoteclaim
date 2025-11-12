@@ -3,329 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Free Fire Emote Claim Center - Mockup</title>
+    <title>Claim Free LOL Emote (GitHub Project Simulation)</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Set log level for debugging
-        setLogLevel('debug');
-
-        // Global Firebase variables
-        let db;
-        let auth;
-        let userId = 'unknown';
-
-        /* * ====================================================================
-        * 1. CHANGE YOUR IMAGE URLS HERE
-        * Replace the placeholder URLs with the direct links to your hosted images.
-        * ====================================================================
-        */
-        const emotes = {
-            // NOTE: The URLs below are placeholders. Replace them with your actual image links!
-            'lol-emote-1': { 
-                name: 'LOL Emote (Victory Dance)', 
-                url: 'https://ibb.co/sJR6t9Zy
-
-            }, 
-            'lol-emote-2': { 
-                name: 'LOL Emote (Waving)', 
-                url: 'https://placehold.co/250x250/1E90FF/ffffff?text=WAVING'        // <-- REPLACE THIS URL with your image link
-            }, 
-            'lol-emote-3': { 
-                name: 'LOL Emote (Heart)', 
-                url: 'https://natural-aquamarine-zc2wiyfe4c.edgeone.app'         // <-- REPLACE THIS URL with your image link
-            }, 
-            'lol-emote-4': { 
-                name: 'LOL Emote (Flex)', 
-                url: 'https://natural-aquamarine-zc2wiyfe4c.edgeone.app/IMG_20251112_113901.png          // <-- REPLACE THIS URL with your image link
-            }, 
-            'lol-emote-5': { 
-                name: 'LOL Emote (Running Man)', 
-                url: 'https://placehold.co/250x250/FFA07A/ffffff?text=RUNNING%20MAN' 
-            },
-            'lol-emote-6': { 
-                name: 'LOL Emote (Image Option)', 
-                url: 'https://natural-aquamarine-zc2wiyfe4c.edgeone.app/IMG_20251112_113901.png  ' 
-            },
-            // --- NEW EMOTE ADDED (Seventh Option) ---
-            'lol-emote-7': { 
-                name: 'LOL Emote (Seventh Option)', 
-                // PASTE YOUR DIRECT IMAGE LINK (must start with http:// or https://) BELOW
-                url: 'https://placehold.co/250x250/F3A66B/000000?text=NEW%20IMAGE%207' 
-            },
-        };
-
-        // Custom UI Alert/Message Box function
-        function showMessage(title, message, isError = false) {
-            const modal = document.getElementById('message-modal');
-            const modalTitle = document.getElementById('modal-title');
-            const modalBody = document.getElementById('modal-body');
-            const header = document.getElementById('modal-header');
-
-            modalTitle.textContent = title;
-            modalBody.innerHTML = message;
-            
-            if (isError) {
-                header.className = 'p-4 bg-red-700 text-white font-bold rounded-t-xl';
-            } else {
-                header.className = 'p-4 bg-green-700 text-white font-bold rounded-t-xl';
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ff-dark': '#1a1a2e',
+                        'ff-primary': '#e94560',
+                        'ff-accent': '#ffb020',
+                        'ff-light': '#fefcfb',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
             }
-            modal.classList.remove('hidden');
         }
-
-        // Function to return the correct image URL based on the selected emote
-        function getEmoteImageUrl(emoteValue) {
-            const emote = emotes[emoteValue];
-            // This function now returns the 'url' property from the emotes object
-            return emote ? emote.url : 'https://placehold.co/250x250/9400D3/ffffff?text=EMOTE%20ERROR';
-        }
-        
-        // Function to update the displayed emote image
-        function updateEmoteImage() {
-            const emoteSelect = document.getElementById('emote-select');
-            const emoteImage = document.getElementById('emote-image');
-            emoteImage.src = getEmoteImageUrl(emoteSelect.value);
-            
-            // Fallback for image loading error (optional, but good practice)
-            // If the image fails to load, it will show a generic error placeholder
-            emoteImage.onerror = () => {
-                emoteImage.src = 'https://ibb.co/sJR6t9Zy';
-            };
-            
-            // Add a slight animation class for visual feedback
-            emoteImage.classList.add('animate-pulse-once');
-            setTimeout(() => {
-                emoteImage.classList.remove('animate-pulse-once');
-            }, 500);
-        }
-
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Initial image load
-            updateEmoteImage();
-            
-            // Listener for dropdown change
-            document.getElementById('emote-select').addEventListener('change', updateEmoteImage);
-
-            try {
-                // 1. Firebase Configuration
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-
-                if (Object.keys(firebaseConfig).length === 0) {
-                    throw new Error("Firebase configuration not found. Cannot initialize Firestore.");
-                }
-
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                // 2. Authentication
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                onAuthStateChanged(auth, (user) => {
-                    const idElement = document.getElementById('session-user-id');
-                    if (user) {
-                        userId = user.uid;
-                        idElement.textContent = userId; // Update UI with real UID
-                        console.log('User signed in. UID:', userId);
-                    } else {
-                        // Fallback if anonymous sign-in fails
-                        userId = crypto.randomUUID();
-                        idElement.textContent = userId; // Update UI with UUID
-                        console.log('User signed out or failed to sign in. Using UUID:', userId);
-                    }
-                });
-
-            } catch (error) {
-                console.error("Firebase initialization or authentication failed:", error);
-                showMessage("Setup Error", `Could not connect to the database. Firestore logging will be unavailable. Details: ${error.message}`, true);
-            }
-
-
-            // 3. Form Submission Handler
-            const claimForm = document.getElementById('claim-form');
-            claimForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-
-                const uid = document.getElementById('uid-input').value.trim();
-                const level = parseInt(document.getElementById('level-input').value.trim(), 10);
-                const emote = document.getElementById('emote-select').value;
-                const claimButton = document.getElementById('claim-button');
-                
-                claimButton.disabled = true;
-                claimButton.textContent = 'Processing...';
-
-               
-                // Simulate an API call delay
-                await new Promise(resolve => setTimeout(resolve, 3000));
-                
-                try {
-                    // Log the simulated attempt to Firestore (Private collection)
-                    if (db && userId) {
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                        const claimsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/emote_claims`);
-                        
-                        await addDoc(claimsCollectionRef, {
-                            uid: uid,
-                            level: level,
-                            // Use the name for logging, not the URL
-                            emote: emotes[emote].name, 
-                            timestamp: new Date().toISOString(),
-                            status: 'SIMULATED_SUCCESS_WARNING_ONLY'
-                        });
-                        console.log('Simulated claim attempt logged to Firestore.');
-                    }
-                    
-                    showMessage("Claim Attempt Logged", safetyMessage, false);
-
-                } catch (error) {
-                    console.error("Error logging claim attempt to Firestore:", error);
-                    showMessage("Simulated Claim Failed", safetyMessage + `<p class="mt-4 text-red-500">Database logging failed: ${error.message}</p>`, true);
-
-                } finally {
-                    claimButton.disabled = false;
-                    claimButton.textContent = 'CLAIM EMOTE';
-                }
-            });
-
-            // Close modal functionality
-            document.getElementById('close-modal').addEventListener('click', () => {
-                document.getElementById('message-modal').classList.add('hidden');
-            });
-        });
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Tailwind gray-900 */
         }
-        /* Custom Keyframes for a quick pulse effect */
-        @keyframes pulse-once {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
+        /* Custom scrollbar for a better gaming feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            background-color: #1f2937;
         }
-        .animate-pulse-once {
-            animation: pulse-once 0.5s ease-in-out;
+        ::-webkit-scrollbar-thumb {
+            background-color: #e94560;
+            border-radius: 4px;
+        }
+        .gaming-glow {
+            box-shadow: 0 0 10px rgba(233, 69, 96, 0.7);
+        }
+        .gradient-border {
+            border: 2px solid;
+            border-image: linear-gradient(to right, #ffb020, #e94560) 1;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen p-4 sm:p-8 flex items-center justify-center">
+<body class="text-ff-light min-h-screen p-4 sm:p-8">
 
-    <!-- Custom Modal/Message Box (Placed outside the main card for Z-index) -->
-    <div id="message-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
-        <div class="bg-gray-800 rounded-xl max-w-sm w-full shadow-2xl overflow-hidden">
-            <div id="modal-header" class="p-4 bg-green-700 text-white font-bold rounded-t-xl">
-                <h3 id="modal-title" class="text-xl">Message</h3>
+    <div class="max-w-4xl mx-auto">
+        <!-- Header / GitHub Style Title -->
+        <header class="mb-8 border-b border-ff-primary pb-4">
+            <h1 class="text-4xl sm:text-5xl font-extrabold mb-2 text-ff-light text-center">
+                🔥 CLAIM LOL EMOTE 🔥
+            </h1>
+            <div class="flex justify-center items-center space-x-2">
+                <span class="bg-ff-primary text-ff-light text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider gaming-glow">
+                    FreeFire | GitHub Project
+                </span>
+                <span class="bg-gray-700 text-gray-300 text-xs font-semibold px-3 py-1 rounded-full">
+                    Version 1.0
+                </span>
             </div>
-            <div class="p-6 text-gray-100">
-                <p id="modal-body" class="text-base text-center"></p>
-                <button id="close-modal" class="mt-6 w-full py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition duration-200">
-                    I Understand
-                </button>
-            </div>
-        </div>
-    </div>
+        </header>
 
-
-    <!-- Main Content Card -->
-    <div class="w-full max-w-lg bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-2xl border-2 border-red-600">
-        
-        <!-- Header -->
-        <h1 class="text-3xl sm:text-4xl font-black text-center text-red-500 mb-2 tracking-wider uppercase">
-            FREE EMOTE PORTAL
-        </h1>
-        <p class="text-sm text-center text-yellow-400 font-bold mb-6">
-            <span class="bg-red-900 px-3 py-1 rounded-full">★ MOCKUP INTERFACE - READ SAFETY WARNING ★</span>
-        </p>
-
-        <!-- Dynamic Emote Display Area -->
-        <div class="flex flex-col items-center justify-center mb-6 p-4 bg-gray-700 rounded-xl border border-purple-500">
-            <!-- Increased image size to w-64 h-64 -->
-            <img id="emote-image" 
-                 src="" 
-                 alt="Selected Emote Placeholder" 
-                 class="w-48 h-48 sm:w-64 sm:h-64 object-cover rounded-2xl border-4 border-yellow-400 shadow-xl transition-transform duration-300">
-            <p class="mt-3 text-xl font-bold text-purple-400">LOL EMOTE</p>
-        </div>
-
-
-        <!-- Safety Disclaimer Box (Prominent) -->
-        <div class="bg-red-950 p-4 rounded-xl mb-6 border-l-4 border-red-500 text-sm">
-            <p class="font-bold text-red-300">⚠️ IMPORTANT SAFETY NOTICE</p>
-            <p class="mt-1 text-gray-300">
-                This is a demo design. Real in-game items (like emotes) can only be obtained through **official Garena events and redemption codes** on the Garena website. **Do not** enter your Free Fire login details on any unauthorized site.
-            </p>
-        </div>
-
-        <!-- Claim Form -->
-        <form id="claim-form" class="space-y-6">
+        <!-- Main Content Grid -->
+        <main class="grid md:grid-cols-2 gap-8">
             
-            <!-- Emote Selection -->
-            <div>
-                <label for="emote-select" class="block text-sm font-medium text-gray-300 mb-2">
-                    Select Your Desired LOL Emote
-                </label>
-                <select id="emote-select" name="emote" required
-                        class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-red-500 focus:ring focus:ring-red-500/50 text-white appearance-none pr-10 transition duration-200">
-                    <option value="lol-emote-1">LOL Emote (Victory Dance)</option>
-                    <option value="lol-emote-2">LOL Emote (Waving)</option>
-                    <option value="lol-emote-3">LOL Emote (Heart)</option>
-                    <option value="lol-emote-4">LOL Emote (Flex)</option>
-                    <option value="lol-emote-5">LOL Emote (Running Man)</option>
-                    <option value="lol-emote-6">LOL Emote (Image Option)</option> 
-                    <option value="lol-emote-7">LOL Emote (Seventh Option)</option>
-                </select>
-                <!-- Custom arrow/icon for dropdown -->
-                <div class="relative">
-                    <span class="absolute right-3 top-[-36px] pointer-events-none text-gray-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </span>
+            <!-- Left Column: Emote Display -->
+            <div class="bg-ff-dark p-6 rounded-xl shadow-2xl gaming-glow">
+                <h2 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2 text-ff-accent">Selected Emote Preview</h2>
+
+                <div class="emote-container aspect-square bg-gray-800 rounded-lg flex items-center justify-center mb-4 overflow-hidden gradient-border">
+                    <img id="emoteImage" 
+                         src="https://placehold.co/400x400/e94560/ffffff?text=LOL+Emote+Image" 
+                         onerror="this.onerror=null;this.src='https://placehold.co/400x400/e94560/ffffff?text=Image+Load+Failed';"
+                         alt="LOL Emote" 
+                         class="w-full h-full object-cover p-4"
+                    >
+                </div>
+                
+                <p class="text-lg font-semibold text-ff-light mb-2">Emote Name: <span class="text-ff-accent">"LOL Victory"</span></p>
+                <p class="text-sm text-gray-400">Status: <span class="text-green-400 font-bold">Available for Claim</span></p>
+
+                <div class="mt-4 p-3 bg-gray-700 rounded-lg">
+                    <label for="imageUrlInput" class="block text-sm font-medium text-ff-light mb-1">Load Custom Emote Image (URL):</label>
+                    <input type="url" id="imageUrlInput" placeholder="Paste image URL here..." class="w-full p-2 rounded-md bg-gray-800 border border-gray-600 focus:ring-ff-primary focus:border-ff-primary text-sm text-ff-light">
+                    <button onclick="loadCustomImage()" class="mt-2 w-full bg-ff-accent text-ff-dark font-bold py-2 rounded-md transition duration-300 hover:bg-yellow-500 text-sm">
+                        Load Image
+                    </button>
                 </div>
             </div>
 
-            <!-- UID Input -->
-            <div>
-                <label for="uid-input" class="block text-sm font-medium text-gray-300 mb-2">
-                    Player UID (Unique ID)
-                </label>
-                <input type="text" id="uid-input" name="uid" required 
-                       placeholder="Enter your 10-digit Free Fire UID"
-                       class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-red-500 focus:ring focus:ring-red-500/50 text-white transition duration-200">
+            <!-- Right Column: Claim Form -->
+            <div class="bg-ff-dark p-6 rounded-xl shadow-2xl gaming-glow">
+                <h2 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2 text-ff-accent">Claim Details</h2>
+                
+                <form id="claimForm" onsubmit="handleClaim(event)" class="space-y-4">
+                    
+                    <div>
+                        <label for="uid" class="block text-sm font-medium text-ff-light mb-1">Free Fire Player UID (ID):</label>
+                        <input type="text" id="uid" required placeholder="e.g., 1234567890" 
+                               class="w-full p-3 rounded-lg bg-gray-800 border border-gray-600 focus:ring-ff-primary focus:border-ff-primary text-ff-light placeholder-gray-500"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="level" class="block text-sm font-medium text-ff-light mb-1">Current Account Level (Min 30):</label>
+                        <input type="number" id="level" required min="10" placeholder="e.g., 75" 
+                               class="w-full p-3 rounded-lg bg-gray-800 border border-gray-600 focus:ring-ff-primary focus:border-ff-primary text-ff-light placeholder-gray-500"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="server" class="block text-sm font-medium text-ff-light mb-1">Server Region:</label>
+                        <select id="server" required
+                                class="w-full p-3 rounded-lg bg-gray-800 border border-gray-600 focus:ring-ff-primary focus:border-ff-primary text-ff-light"
+                        >
+                            <option value="">-- Select Your Server --</option>
+                            <option value="Asia">Asia</option>
+                            <option value="Europe">Europe</option>
+                            <option value="NA">North America</option>
+                            <option value="SA">South America</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="claimButton" class="w-full bg-ff-primary text-ff-light font-black py-4 rounded-lg text-xl uppercase transition duration-300 hover:bg-red-700 gaming-glow border border-ff-primary hover:border-ff-accent">
+                        PROCESS CLAIM
+                    </button>
+
+                    <!-- Status Message Box -->
+                    <div id="statusMessage" class="hidden mt-4 p-4 rounded-lg text-center font-bold"></div>
+
+                    <!-- MANDATORY DISCLAIMER -->
+                    <p class="text-xs text-center text-red-400 pt-4">
+                        <strong class="uppercase">Disclaimer:</strong> This is a simulated, open-source front-end project designed for educational purposes only. It does NOT connect to any official Free Fire servers, and pressing the "Process Claim" button will NOT grant any in-game items.
+                    </p>
+                </form>
+
             </div>
-
-            <!-- Level Input -->
-            <div>
-                <label for="level-input" class="block text-sm font-medium text-gray-300 mb-2">
-                    Account Level
-                </label>
-                <input type="number" id="level-input" name="level" required min="1" max="100"
-                       placeholder="Enter your current in-game level"
-                       class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-red-500 focus:ring focus:ring-red-500/50 text-white transition duration-200">
-            </div>
-
-            <!-- Claim Button -->
-            <button type="submit" id="claim-button"
-                    class="w-full py-3 mt-4 bg-red-600 hover:bg-red-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-red-900/50 transition duration-300 transform hover:scale-[1.01] active:scale-[0.98]">
-                CLAIM EMOTE
-            </button>
-
-        </form>
-        
-        <!-- User ID Display -->
-        <p class="text-xs text-center text-gray-500 mt-6">
-            Your Session ID: <span id="session-user-id" class="font-mono text-gray-400">Loading...</span>
-        </p>
-
+        </main>
     </div>
 
+    <!-- JavaScript for Interactivity -->
+    <script>
+        // Global utility function to display custom messages (replacing alert())
+        function displayMessage(message, type = 'success') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.classList.remove('hidden', 'bg-green-600', 'bg-red-600', 'bg-blue-600');
+
+            if (type === 'success') {
+                statusDiv.classList.add('bg-green-600');
+            } else if (type === 'error') {
+                statusDiv.classList.add('bg-red-600');
+            } else {
+                statusDiv.classList.add('bg-blue-600');
+            }
+
+            // Hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Function to handle custom image loading
+        function loadCustomImage() {
+            const url = document.getElementById('imageUrlInput').value;
+            const imgElement = document.getElementById('emoteImage');
+            
+            if (url) {
+                // Temporarily disable error handler to prevent flicker if image is loading
+                imgElement.onerror = null; 
+                imgElement.src = url;
+                displayMessage("Custom image loading...", 'info');
+                
+                // Re-add error handler after a short delay
+                imgElement.onload = () => {
+                    displayMessage("Image loaded successfully!", 'success');
+                    imgElement.onerror = function() {
+                        this.onerror = null;
+                        this.src = 'https://placehold.co/400x400/e94560/ffffff?text=Image+Load+Failed';
+                        displayMessage("Failed to load custom image. Using placeholder.", 'error');
+                    };
+                };
+                imgElement.onerror = function() {
+                    this.onerror = null;
+                    this.src = 'https://placehold.co/400x400/e94560/ffffff?text=Image+Load+Failed';
+                    displayMessage("Failed to load custom image. Using placeholder.", 'error');
+                };
+
+            } else {
+                displayMessage("Please enter a valid URL.", 'error');
+            }
+        }
+
+        // Function to simulate the claim process
+        function handleClaim(event) {
+            event.preventDefault(); // Stop default form submission
+            
+            const uid = document.getElementById('uid').value;
+            const level = document.getElementById('level').value;
+            const server = document.getElementById('server').value;
+            const button = document.getElementById('claimButton');
+            
+            // Basic validation
+            if (!uid || !level || !server) {
+                displayMessage("Please fill out all claim details!", 'error');
+                return;
+            }
+
+            // Disable button and show loading state
+            button.disabled = true;
+            button.textContent = "Processing... Please Wait ⏳";
+            button.classList.remove('bg-ff-primary', 'hover:bg-red-700');
+            button.classList.add('bg-gray-500');
+
+            // Simulate network delay and claim logic (3 seconds)
+            setTimeout(() => {
+                const success = Math.random() > 0.1; // 90% chance of 'success' in simulation
+                
+                // Re-enable button and reset state
+                button.disabled = false;
+                button.textContent = "PROCESS CLAIM";
+                button.classList.remove('bg-gray-500');
+                button.classList.add('bg-ff-primary', 'hover:bg-red-700');
+
+                if (success) {
+                    displayMessage(`Claim initiated for UID ${uid}. Check your in-game mail within 24 hours. (Simulated Success)`, 'success');
+                } else {
+                    displayMessage("Claim failed: Server busy or UID not recognized. Please try again. (Simulated Failure)", 'error');
+                }
+
+            }, 3000); // 3-second simulation delay
+        }
+    </script>
 </body>
 </html>
